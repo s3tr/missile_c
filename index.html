@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Missile Command — Vintage Remix</title>
+  <style>
+    /* Reset */
+    html,body{height:100%;margin:0;background:#000}
+    :root{
+      --bg1:#041026;
+      --bg2:#00121a;
+      --accent:#62d0ff;
+      --hit:#ff8c42;
+      --city:#d9e1b8;
+      --base:#9be3a5;
+      --glass: rgba(255,255,255,0.04);
+    }
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(80,120,160,0.06), transparent), linear-gradient(180deg,var(--bg1),var(--bg2));
+      color:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;
+    }
+    #game{width:min(1100px,96vw);height:min(700px,86vh);position:relative;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
+    canvas{display:block;width:100%;height:100%;background:transparent}
+    .hud{position:absolute;left:14px;top:12px;font-size:14px;backdrop-filter: blur(6px);padding:8px 10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 6px 18px rgba(0,0,0,0.5)}
+    .hud .title{font-weight:700;letter-spacing:0.6px}
+    .controls{position:absolute;right:14px;top:12px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--glass)}
+    .footer{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;font-size:13px;padding:6px 12px;border-radius:10px;background:var(--glass)}
+    button{background:linear-gradient(180deg,var(--accent),#2aa0d9);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;color:#012;text-shadow:0 1px 0 rgba(255,255,255,0.2);font-size:15px;font-weight:600}
+    .muted{opacity:0.8;color:#cfeaff}
+    .big{font-size:20px}
+    .menu, .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);z-index:10}
+    .menu.hidden, .overlay.hidden{display:none}
+    .menu h1{font-size:32px;margin-bottom:20px}
+    .menu button{margin:8px}
+    @media (max-width:720px){
+      .hud,.controls,.footer{font-size:12px;padding:6px}
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <canvas id="c"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="title">Missile Command — Vintage Remix</div>
+      <div id="score">Score: 0</div>
+      <div id="cities">Cities: 6</div>
+    </div>
+
+    <div class="controls muted">
+      <div>Click / Tap to fire interceptor</div>
+      <div style="margin-top:6px">Press <strong>R</strong> to restart • <strong>Space</strong> to pause</div>
+    </div>
+
+    <div class="footer muted" id="footer">Wave 1 — difficulty: normal</div>
+
+    <div id="mainMenu" class="menu">
+      <h1>Missile Command</h1>
+      <button id="startBtn">Start Game</button>
+    </div>
+
+    <div id="gameOverScreen" class="overlay hidden">
+      <h1>Game Over</h1>
+      <button id="restartBtn">Restart</button>
+      <button id="menuBtn">Main Menu</button>
+    </div>
+  </div>
+
+  <script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W, H, DPR;
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.width = Math.floor(canvas.clientWidth * DPR);
+    H = canvas.height = Math.floor(canvas.clientHeight * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Game state
+  let score = 0;
+  let cities = [];
+  let bases = [];
+  let enemyMissiles = [];
+  let interceptors = [];
+  let explosions = [];
+  let particles = [];
+  let wave = 1;
+  let paused = false;
+  let gameOver = false;
+  let running = false;
+  const baseCount = 3;
+
+  // Menu elements
+  const mainMenu = document.getElementById('mainMenu');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  document.getElementById('startBtn').onclick = ()=>{ startGame(); };
+  document.getElementById('restartBtn').onclick = ()=>{ startGame(); };
+  document.getElementById('menuBtn').onclick = ()=>{ showMenu(); };
+
+  const starCount = 120;
+  const stars = [];
+  for(let i=0;i<starCount;i++) stars.push({x:Math.random(), y:Math.random(), r: Math.random()*1.2, twinkle: Math.random()*1.5});
+
+  function init(){
+    score = 0; wave = 1; paused=false; gameOver=false;
+    enemyMissiles=[]; interceptors=[]; explosions=[]; particles=[];
+    cities = []; bases = [];
+
+    const bottomY = 0.78;
+    const cityCount = 6;
+    for(let i=0;i<cityCount;i++){
+      cities.push({x:(0.1 + i*(0.8/(cityCount-1))), y:bottomY, alive:true});
+    }
+    bases.push({x:0.12, y:bottomY+0.02, ammo:10});
+    bases.push({x:0.5, y:bottomY+0.02, ammo:10});
+    bases.push({x:0.88, y:bottomY+0.02, ammo:10});
+
+    hudUpdate();
+  }
+
+  function hudUpdate(){
+    document.getElementById('score').textContent = 'Score: '+score;
+    document.getElementById('cities').textContent = 'Cities: '+cities.filter(c=>c.alive).length;
+    document.getElementById('footer').textContent = 'Wave '+wave+' — difficulty: normal';
+  }
+
+  function startGame(){
+    mainMenu.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    init();
+    running = true;
+    last = performance.now();
+    requestAnimationFrame(loop);
+  }
+  function showMenu(){
+    mainMenu.classList.remove('hidden');
+    gameOverScreen.classList.add('hidden');
+    running = false;
+  }
+
+  function rand(min,max){return Math.random()*(max-min)+min}
+  function distance(a,b){return Math.hypot(a.x-b.x, a.y-b.y)}
+  function pxX(rx){return rx * canvas.clientWidth}
+  function pxY(ry){return ry * canvas.clientHeight}
+
+  let spawnTimer = 0;
+  function spawnWave(){
+    const count = Math.min(8 + Math.floor(wave*1.5), 40);
+    for(let i=0;i<count;i++){
+      const sx = rand(0.05,0.95), sy = -0.02;
+      const targets = cities.filter(c=>c.alive).concat(bases);
+      if(targets.length===0) {gameOver=true; return}
+      const t = targets[Math.floor(Math.random()*targets.length)];
+      const tx = t.x, ty = t.y + (Math.random()*0.03 - 0.01);
+      enemyMissiles.push({x:sx,y:sy,tx:tx,ty:ty,spd:rand(0.12,0.28)+wave*0.02, trail:[]});
+    }
+  }
+
+  canvas.addEventListener('pointerdown', (e)=>{
+    if(!running) return;
+    if(gameOver){ startGame(); return }
+    const rect = canvas.getBoundingClientRect();
+    const tx = (e.clientX - rect.left) / rect.width;
+    const ty = (e.clientY - rect.top) / rect.height;
+    fireInterceptor(tx,ty);
+  });
+
+  function fireInterceptor(tx,ty){
+    let best = null, bestD = 1e9;
+    for(const b of bases){ if(b.ammo>0){ const d = Math.abs(b.x - tx); if(d<bestD){best=b;bestD=d}}}
+    if(!best) return;
+    best.ammo--;
+    interceptors.push({x:best.x,y:best.y,tx:tx,ty:ty,progress:0,spd:0.9,explodeAt: null});
+    for(let i=0;i<14;i++) particles.push({x:best.x,y:best.y,vx:rand(-0.02,0.02),vy:rand(-0.06,-0.02),life:rand(0.3,0.7),size:rand(1.5,3),color:'#9be3a5'});
+  }
+
+  let last = performance.now();
+  function loop(now){
+    if(!running) return;
+    const dt = Math.min((now-last)/1000, 0.05);
+    last = now;
+    if(!paused) update(dt);
+    render();
+    if(!gameOver) requestAnimationFrame(loop);
+    else { running=false; gameOverScreen.classList.remove('hidden'); }
+  }
+
+  function update(dt){
+    spawnTimer -= dt;
+    if(spawnTimer <= 0){ spawnWave(); spawnTimer = Math.max(3 - wave*0.08, 0.8); wave++; }
+
+    for(let i = enemyMissiles.length-1;i>=0;i--){
+      const m = enemyMissiles[i];
+      const dirx = m.tx - m.x; const diry = m.ty - m.y;
+      const dist = Math.hypot(dirx,diry);
+      const vx = dirx/dist * m.spd * dt;
+      const vy = diry/dist * m.spd * dt;
+      m.x += vx; m.y += vy;
+      m.trail.push({x:m.x,y:m.y,t:0});
+      if(m.trail.length>18) m.trail.shift();
+
+      if(Math.hypot(m.x-m.tx,m.y-m.ty) < 0.02){
+        let hit = false;
+        for(const c of cities){ if(c.alive && Math.hypot(c.x-m.x,c.y-m.y) < 0.03){ c.alive=false; hit=true; explode(pxX(m.x), pxY(m.y), 70); break }}
+        for(const b of bases){ if(Math.hypot(b.x-m.x,b.y-m.y) < 0.03 && !hit){ b.ammo = Math.max(0, b.ammo-5); explode(pxX(m.x), pxY(m.y), 60); hit=true }}
+        if(!hit) explode(pxX(m.x), pxY(m.y), 50);
+        enemyMissiles.splice(i,1);
+      }
+    }
+
+    for(let i=interceptors.length-1;i>=0;i--){
+      const it = interceptors[i];
+      it.progress += dt * it.spd;
+      const px = it.x + (it.tx - it.x) * it.progress;
+      const py = it.y + (it.ty - it.y) * it.progress;
+      it.lastpos = {x:px,y:py};
+      if(it.progress >= 1){
+        explode(pxX(it.tx), pxY(it.ty), 110 + Math.random()*40);
+        interceptors.splice(i,1);
+      }
+    }
+
+    for(let i=explosions.length-1;i>=0;i--){
+      const ex = explosions[i];
+      ex.life -= dt;
+      ex.r += dt * 40 * (ex.growth||1);
+      for(let j=enemyMissiles.length-1;j>=0;j--){
+        const m = enemyMissiles[j];
+        const dx = pxX(m.x)-ex.x, dy = pxY(m.y)-ex.y;
+        if(Math.hypot(dx,dy) < ex.r){
+          spawnBits(pxX(m.x), pxY(m.y), 18);
+          score += 10;
+          enemyMissiles.splice(j,1);
+        }
+      }
+      if(ex.life <= 0){ explosions.splice(i,1); }
+    }
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i]; p.life -= dt; p.x += p.vx; p.y += p.vy; p.vy += dt*0.09; if(p.life<=0) particles.splice(i,1);
+    }
+
+    for(const b of bases) b.ammo = Math.min(12, b.ammo + dt*0.15);
+
+    hudUpdate();
+    if(cities.filter(c=>c.alive).length === 0){ gameOver = true; }
+  }
+
+  function explode(x,y,str){
+    explosions.push({x:x,y:y,r:8,life:0.9,growth:1.2});
+    for(let i=0;i<30;i++){
+      particles.push({x:x,y:y,vx:rand(-3,3),vy:rand(-6,2),life:rand(0.6,1.2),size:rand(1,3),color:(Math.random()<0.5? '#ffdf80':'#ff8c42')});
+    }
+  }
+  function spawnBits(x,y,n){ for(let i=0;i<n;i++) particles.push({x:x,y:y,vx:rand(-2.5,2.5),vy:rand(-4,1),life:rand(0.6,1.1),size:rand(1,2),color:'#fff'}); }
+
+  function render(){
+    ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    for(const s of stars){ ctx.beginPath(); ctx.fillStyle = 'rgba(255,255,255,'+ (0.15 + 0.85*Math.abs(Math.sin(Date.now()/1000 * s.twinkle))) +')'; ctx.arc(s.x*canvas.clientWidth, s.y*canvas.clientHeight, s.r*DPR, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+
+    const g = ctx.createLinearGradient(0,0,0,canvas.clientHeight);
+    g.addColorStop(0, 'rgba(98,208,255,0.03)');
+    g.addColorStop(0.6,'rgba(40,80,120,0.02)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+    for(const m of enemyMissiles){
+      ctx.beginPath();
+      for(let i=0;i<m.trail.length;i++){
+        const p = m.trail[i];
+        ctx.lineTo(pxX(p.x), pxY(p.y));
+      }
+      ctx.strokeStyle = 'rgba(255,120,90,0.9)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.fillStyle = 'rgba(255,180,140,1)'; ctx.arc(pxX(m.x), pxY(m.y), 3,0,Math.PI*2); ctx.fill();
+    }
+
+    for(const it of interceptors){
+      ctx.beginPath(); ctx.moveTo(pxX(it.x), pxY(it.y));
+      const px = it.x + (it.tx - it.x) * it.progress; const py = it.y + (it.ty - it.y) * it.progress;
+      ctx.lineTo(pxX(px), pxY(py)); ctx.strokeStyle = 'rgba(150,230,170,0.9)'; ctx.lineWidth = 2; ctx.stroke();
