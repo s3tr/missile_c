@@ -132,10 +132,13 @@ function startGame(){
   mainMenu.classList.add('hidden');
   gameOverScreen.classList.add('hidden');
   init();
+  spawnWave();            // ✅ ilk dalga anında
   running = true;
   last = performance.now();
   requestAnimationFrame(loop);
 }
+
+
 
 function showMenu(){
   running=false;
@@ -178,19 +181,21 @@ function fireInterceptor(tx, ty){
   updateHUD();
 }
 
-/* ===== Oyun Döngüsü ===== */
 function loop(now){
   if(!running) return;
   const dt = Math.min((now - last)/1000, 0.033);
   last = now;
 
-  if(!paused){
+  if(!paused && !gameOver){
     update(dt);
   }
   render();
 
+  // ✅ her karede döngüyü sürdür (gameOver olsa da)
   requestAnimationFrame(loop);
 }
+
+
 
 /* ===== Spawn / Update ===== */
 function update(dt){
