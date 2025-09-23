@@ -6,19 +6,24 @@
   <title>Missile Command — Fixed</title>
   <style>
     html,body{height:100%;margin:0;background:#000}
-    :root{--bg1:#041026;--bg2:#00121a;--accent:#62d0ff;--hit:#ff8c42;--city:#d9e1b8;--base:#9be3a5;--glass:rgba(255,255,255,0.05)}
-    body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:radial-gradient(1200px 600px at 10% 10%,rgba(80,120,160,.06),transparent),linear-gradient(180deg,var(--bg1),var(--bg2));color:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    #game{width:min(1100px,96vw);height:min(700px,86vh);position:relative;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
+    :root{--bg1:#041026;--bg2:#00121a;--accent:#62d0ff;--glass:rgba(255,255,255,0.06)}
+    body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:
+      radial-gradient(1200px 600px at 10% 10%,rgba(80,120,160,.06),transparent),
+      linear-gradient(180deg,var(--bg1),var(--bg2));
+      color:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    #game{width:min(1100px,96vw);height:min(700px,86vh);position:relative;border-radius:14px;
+      box-shadow:0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+      overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
     canvas{display:block;width:100%;height:100%;background:transparent}
-    .hud{position:absolute;left:14px;top:12px;font-size:14px;backdrop-filter:blur(6px);padding:8px 10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));box-shadow:0 6px 18px rgba(0,0,0,.5)}
+    .hud{position:absolute;left:14px;top:12px;font-size:14px;backdrop-filter:blur(6px);
+      padding:8px 10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));
+      box-shadow:0 6px 18px rgba(0,0,0,.5)}
     .hud .title{font-weight:700;letter-spacing:.6px}
     .controls{position:absolute;right:14px;top:12px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--glass)}
     .footer{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;font-size:13px;padding:6px 12px;border-radius:10px;background:var(--glass)}
-    button{background:linear-gradient(180deg,var(--accent),#2aa0d9);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;color:#012;text-shadow:0 1px 0 rgba(255,255,255,.2);font-size:15px;font-weight:600}
-    .muted{opacity:.9;color:#cfeaff}
+    button{background:linear-gradient(180deg,var(--accent),#2aa0d9);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;color:#012;font-size:15px;font-weight:600}
     .menu,.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:10}
     .hidden{display:none}
-    .menu h1,.overlay h1{margin-bottom:20px}
     @media (max-width:720px){.hud,.controls,.footer{font-size:12px;padding:6px}}
   </style>
 </head>
@@ -33,12 +38,12 @@
     <div id="ammo">Ammo: 0 / 0 / 0</div>
   </div>
 
-  <div class="controls muted">
-    <div>Click / Tap: ateş et</div>
-    <div style="margin-top:6px">R: yeniden başlat • Space: durdur</div>
+  <div class="controls">
+    <div>Tıkla: ateş et</div>
+    <div style="margin-top:6px">R: yeniden başlat • Space: durdur/devam</div>
   </div>
 
-  <div class="footer muted" id="footer">Wave 1 — difficulty: normal</div>
+  <div class="footer" id="footer">Wave 1 — difficulty: easy</div>
 
   <div id="mainMenu" class="menu">
     <h1>Missile Command</h1>
@@ -65,7 +70,7 @@ function resize(){
   canvas.width  = Math.floor(cssW * DPR);
   canvas.height = Math.floor(cssH * DPR);
   W = canvas.width; H = canvas.height;
-  ctx.setTransform(1,0,0,1,0,0); // draw in pixel space
+  ctx.setTransform(1,0,0,1,0,0); // px uzayında çiz
 }
 window.addEventListener('resize', resize); resize();
 
@@ -76,24 +81,36 @@ let last = performance.now(), spawnAccum=0, spawnGap=2.5;
 
 const mainMenu = document.getElementById('mainMenu');
 const gameOverScreen = document.getElementById('gameOverScreen');
-document.getElementById('startBtn').onclick = () => startGame();
-document.getElementById('restartBtn').onclick = () => startGame();
-document.getElementById('menuBtn').onclick = () => showMenu();
 
+/* ===== Buttons with logs ===== */
+document.getElementById('startBtn').addEventListener('click', () => {
+  console.log('[UI] Start clicked');
+  startGame();
+});
+document.getElementById('restartBtn').addEventListener('click', () => {
+  console.log('[UI] Restart clicked');
+  startGame();
+});
+document.getElementById('menuBtn').addEventListener('click', () => {
+  console.log('[UI] Menu clicked');
+  showMenu();
+});
+
+/* ===== Keys ===== */
 document.addEventListener('keydown', (e)=>{
   if(e.code === 'Space'){
-    if(running && !gameOver){ paused = !paused; }
+    if(running && !gameOver){ paused = !paused; updateHUD(); }
     e.preventDefault();
   }else if(e.key.toLowerCase()==='r'){
     startGame();
   }
 });
 
-/* ===== Helpers: normalized <-> pixel =====
-   Tüm oyun mantığı 0..1 normalize koordinatlarda.
-   Çizim yaparken px'e çeviriyoruz. */
+/* ===== Normalize helpers ===== */
 const NX = x => x * W;
 const NY = y => y * H;
+function lerp(a,b,t){ return a + (b-a)*t; }
+function distN(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
 
 /* ===== Init ===== */
 function init(){
@@ -102,12 +119,11 @@ function init(){
   cities.length=0; bases.length=0;
   spawnAccum=0; spawnGap=2.5;
 
-  const groundY = 0.85; // altta yer kaplaması için yüksek tuttuk
+  const groundY = 0.85;
   const cityCount = 6;
   for(let i=0;i<cityCount;i++){
     cities.push({ x: 0.12 + i*(0.76/(cityCount-1)), y: groundY, alive:true });
   }
-  // 3 batarya: sol-orta-sağ
   bases.push({ x: 0.10, y: groundY+0.02, ammoMax:20, ammo:20 });
   bases.push({ x: 0.50, y: groundY+0.02, ammoMax:20, ammo:20 });
   bases.push({ x: 0.90, y: groundY+0.02, ammoMax:20, ammo:20 });
@@ -115,51 +131,57 @@ function init(){
   updateHUD();
 }
 
-/* ===== UI ===== */
+/* ===== HUD ===== */
 const scoreEl = document.getElementById('score');
 const citiesEl = document.getElementById('cities');
 const ammoEl = document.getElementById('ammo');
 const footerEl = document.getElementById('footer');
 
+function difficultyName(w){
+  return w<5?'easy':w<10?'normal':w<16?'hard':'insane';
+}
 function updateHUD(){
   scoreEl.textContent = 'Score: ' + score;
   citiesEl.textContent = 'Cities: ' + cities.filter(c=>c.alive).length;
   ammoEl.textContent = 'Ammo: ' + bases.map(b=>b.ammo).join(' / ');
-  footerEl.textContent = 'Wave ' + wave + ' — difficulty: ' + (wave<5?'easy':wave<10?'normal':wave<16?'hard':'insane');
+  footerEl.textContent = (paused?'⏸ ':'') + 'Wave ' + wave + ' — difficulty: ' + difficultyName(wave);
+  // teşhis için:
+  // console.log(`[STATE] running=${running} paused=${paused} gameOver=${gameOver} wave=${wave} enemies=${enemies.length}`);
 }
 
+/* ===== Start/Menu ===== */
 function startGame(){
   mainMenu.classList.add('hidden');
   gameOverScreen.classList.add('hidden');
+
   init();
-  spawnWave();            // ✅ ilk dalga anında
-  running = true;
+
+  running = true;               // önce true yap
+  paused = false;
+  gameOver = false;
+
+  spawnWave();                  // ilk dalga anında
   last = performance.now();
+
+  console.log('[GAME] running=', running, 'wave=', wave);
   requestAnimationFrame(loop);
 }
-
-
-
 function showMenu(){
   running=false;
   mainMenu.classList.remove('hidden');
   gameOverScreen.classList.add('hidden');
 }
 
-/* ===== Input: ateş et ===== */
+/* ===== Input (fire) ===== */
 canvas.addEventListener('pointerdown', (e)=>{
-  // Overlay açıkken canvas tıklaması ateş etmesin
   if(!running || gameOver || paused) return;
-
   const rect = canvas.getBoundingClientRect();
   const tx = (e.clientX - rect.left) / rect.width;
   const ty = (e.clientY - rect.top)  / rect.height;
-
   fireInterceptor(tx, ty);
 });
 
 function fireInterceptor(tx, ty){
-  // En yakın, cephanesi olan bataryayı bul
   let best=null, bestD=Infinity;
   for(const b of bases){
     if(b.ammo>0){
@@ -170,17 +192,18 @@ function fireInterceptor(tx, ty){
   if(!best) return;
   best.ammo--;
   interceptors.push({
-    x: best.x, y: best.y,
+    sx: best.x, sy: best.y, // başlangıcı kaydet (lerp için)
+    x: best.x,  y: best.y,
     tx, ty,
-    t: 0, spd: 1.1  // 0..1 arasında ilerleme
+    t: 0, spd: 1.1
   });
-  // namlu efekti
   for(let i=0;i<10;i++){
     particles.push({x:best.x,y:best.y,vx:(Math.random()-.5)*0.03,vy:-Math.random()*0.05,life:0.3+Math.random()*0.3,size:1+Math.random()*1.5,color:'#9be3a5'});
   }
   updateHUD();
 }
 
+/* ===== Game Loop ===== */
 function loop(now){
   if(!running) return;
   const dt = Math.min((now - last)/1000, 0.033);
@@ -191,17 +214,15 @@ function loop(now){
   }
   render();
 
-  // ✅ her karede döngüyü sürdür (gameOver olsa da)
+  // her karede sürdür
   requestAnimationFrame(loop);
 }
 
-
-
-/* ===== Spawn / Update ===== */
+/* ===== Update ===== */
 function update(dt){
-  // düşman spawn
+  // spawn pacing
   spawnAccum += dt;
-  const targetGap = Math.max(2.2 - wave*0.12, 0.7); // dalga ilerledikçe hızlansın ama saçmalamasın
+  const targetGap = Math.max(2.2 - wave*0.12, 0.7);
   if(spawnAccum >= spawnGap){
     spawnWave();
     spawnAccum = 0;
@@ -209,7 +230,7 @@ function update(dt){
     wave++;
   }
 
-  // düşman füzeler
+  // enemy missiles
   for(let i=enemies.length-1;i>=0;i--){
     const m = enemies[i];
     const dx = m.tx - m.x, dy = m.ty - m.y;
@@ -218,6 +239,202 @@ function update(dt){
     m.x += dx * step;
     m.y += dy * step;
 
-    // hedefe çarptı mı?
     if(Math.hypot(m.x - m.tx, m.y - m.ty) < 0.01){
-      // şehre ya da bataryaya hasar
+      let hit = false;
+      for(const c of cities){
+        if(c.alive && distN(c.x,c.y,m.x,m.y) < 0.03){
+          c.alive = false; hit = true; break;
+        }
+      }
+      if(!hit){
+        for(const b of bases){
+          if(distN(b.x,b.y,m.x,m.y) < 0.03){
+            b.ammo = 0; hit = true; break;
+          }
+        }
+      }
+      explode(m.x, m.y, 0.06);
+      enemies.splice(i,1);
+      continue;
+    }
+  }
+
+  // interceptors
+  for(let i=interceptors.length-1;i>=0;i--){
+    const it = interceptors[i];
+    it.t = Math.min(it.t + dt*it.spd, 1);
+    it.x = lerp(it.sx, it.tx, it.t);
+    it.y = lerp(it.sy, it.ty, it.t);
+    if(it.t >= 1){
+      explode(it.tx, it.ty, 0.08);
+      interceptors.splice(i,1);
+    }
+  }
+
+  // explosions (damage in radius)
+  for(let i=explosions.length-1;i>=0;i--){
+    const ex = explosions[i];
+    ex.r = Math.min(ex.r + dt*ex.growth, ex.rMax);
+    ex.life -= dt;
+
+    for(let j=enemies.length-1;j>=0;j--){
+      const m = enemies[j];
+      if(distN(m.x,m.y, ex.x,ex.y) <= ex.r){
+        score += 25;
+        explode(m.x, m.y, 0.05);
+        enemies.splice(j,1);
+      }
+    }
+    if(ex.life <= 0) explosions.splice(i,1);
+  }
+
+  // particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.02*dt;
+    p.life -= dt;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  // game over?
+  if(cities.every(c=>!c.alive)){
+    gameOver = true;
+    gameOverScreen.classList.remove('hidden');
+  }
+
+  updateHUD();
+}
+
+/* ===== Spawning ===== */
+function spawnWave(){
+  const aliveCities = cities.filter(c=>c.alive);
+  if(aliveCities.length===0){ gameOver = true; return; }
+
+  const count = Math.min(6 + Math.floor(wave*1.2), 28); // başlangıçta da hareket olsun
+  for(let i=0;i<count;i++){
+    const sx = Math.random()*0.9 + 0.05;
+    const sy = -0.05;
+    const targets = aliveCities.concat(bases);
+    const t = targets[Math.floor(Math.random()*targets.length)];
+    enemies.push({
+      x:sx, y:sy, tx: t.x + (Math.random()*0.04-0.02), ty: t.y,
+      speed: 0.20 + Math.random()*0.07 + Math.min(0.015*wave, 0.20)
+    });
+  }
+  // her dalga ammo takviyesi
+  for(const b of bases){
+    b.ammo = Math.min(b.ammo + 5, b.ammoMax);
+  }
+}
+
+/* ===== FX ===== */
+function explode(nx, ny, r){
+  explosions.push({ x:nx, y:ny, r:0.001, rMax:r, life:0.8, growth:r*2 });
+  for(let i=0;i<24;i++){
+    particles.push({
+      x:nx, y:ny,
+      vx:(Math.random()-.5)*0.06,
+      vy:(Math.random()-.6)*0.08,
+      life:0.4+Math.random()*0.5,
+      size:1+Math.random()*2,
+      color: Math.random()<0.5?'rgba(255,223,128,1)':'rgba(255,140,66,1)'
+    });
+  }
+}
+
+/* ===== Stars (static) ===== */
+const stars = (()=>{ const arr=[];
+  for(let i=0;i<120;i++) arr.push({x:Math.random(),y:Math.random(),r:Math.random()*1.5,tw:Math.random()*1.5});
+  return arr;
+})();
+
+/* ===== Render ===== */
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  // stars
+  const t = performance.now()/1000;
+  for(const s of stars){
+    const a = 0.15 + 0.85*Math.abs(Math.sin(t*s.tw));
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.arc(NX(s.x), NY(s.y), s.r*DPR, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // ground strip
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(0, NY(0.87), W, H - NY(0.87));
+
+  // cities
+  for(const c of cities){
+    const x = NX(c.x), y = NY(c.y);
+    ctx.fillStyle = c.alive ? 'rgba(217,225,184,0.95)' : 'rgba(120,120,120,0.35)';
+    const w = 22*DPR, h = 16*DPR;
+    ctx.fillRect(x-w*0.6, y-h, w*0.4, h);
+    ctx.fillRect(x-w*0.1, y-h*1.2, w*0.5, h*1.2);
+    ctx.fillRect(x+w*0.5, y-h*0.8, w*0.35, h*0.8);
+  }
+
+  // bases
+  for(const b of bases){
+    const x = NX(b.x), y = NY(b.y);
+    ctx.fillStyle = 'rgba(155,227,165,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(x-18*DPR,y); ctx.lineTo(x,y-18*DPR); ctx.lineTo(x+18*DPR,y); ctx.closePath(); ctx.fill();
+    // ammo bar
+    const ammoFrac = b.ammo / b.ammoMax;
+    ctx.fillStyle = 'rgba(98,208,255,0.9)';
+    ctx.fillRect(x-20*DPR, y+6*DPR, 40*DPR*ammoFrac, 5*DPR);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.strokeRect(x-20*DPR, y+6*DPR, 40*DPR, 5*DPR);
+  }
+
+  // enemy trails & heads
+  ctx.lineWidth = 2*DPR;
+  for(const m of enemies){
+    ctx.strokeStyle = 'rgba(255,120,90,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(NX(m.x), NY(m.y));
+    ctx.lineTo(NX(m.tx), NY(m.ty));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,180,140,1)';
+    ctx.arc(NX(m.x), NY(m.y), 3*DPR, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // interceptors
+  for(const it of interceptors){
+    ctx.beginPath();
+    ctx.fillStyle = '#9be3a5';
+    ctx.arc(NX(it.x), NY(it.y), 3.5*DPR, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // explosions
+  for(const ex of explosions){
+    const rpx = ex.r * Math.min(W,H);
+    const grd = ctx.createRadialGradient(NX(ex.x), NY(ex.y), 0, NX(ex.x), NY(ex.y), rpx);
+    grd.addColorStop(0,'rgba(255,255,200,0.85)');
+    grd.addColorStop(0.7,'rgba(255,140,66,0.35)');
+    grd.addColorStop(1,'rgba(255,140,66,0.02)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(NX(ex.x), NY(ex.y), rpx, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // particles
+  for(const p of particles){
+    ctx.fillStyle = p.color || '#fff';
+    ctx.beginPath();
+    ctx.arc(NX(p.x), NY(p.y), (p.size||2)*DPR, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+</script>
+</body>
+</html>
