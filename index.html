@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Missile Command — Fixed</title>
+  <title>Missile Command — Gemini</title>
   <style>
     html, body {
       height: 100%;
@@ -199,39 +199,46 @@
 
   /* ===== Sound Engine ===== */
   let audioContext = null;
+  let masterGainNode = null;
   let audioEnabled = false;
 
   const audioOnIcon = document.getElementById('audioOn');
   const audioOffIcon = document.getElementById('audioOff');
   const audioButton = document.getElementById('audioButton');
 
+  function initAudio() {
+    if (audioContext) return;
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      masterGainNode = audioContext.createGain();
+      masterGainNode.connect(audioContext.destination);
+      masterGainNode.gain.setValueAtTime(0, audioContext.currentTime); // Start muted
+      audioEnabled = true;
+      audioButton.click(); // Initial click to unmute
+    } catch (e) {
+      console.error("Web Audio API is not supported or could not be initialized.");
+    }
+  }
+
   function toggleAudio() {
     if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      initAudio();
+      return;
     }
-    audioEnabled = !audioEnabled;
-    if (audioEnabled) {
+    const currentGain = masterGainNode.gain.value;
+    const newGain = currentGain > 0 ? 0 : 1;
+    masterGainNode.gain.setValueAtTime(newGain, audioContext.currentTime);
+    if (newGain > 0) {
       audioOnIcon.classList.remove('hidden');
       audioOffIcon.classList.add('hidden');
-      // A simple background hum
-      const osc = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
-      osc.connect(gainNode).connect(audioContext.destination);
-      osc.start();
-      osc.stop(audioContext.currentTime + 999999);
     } else {
       audioOnIcon.classList.add('hidden');
       audioOffIcon.classList.remove('hidden');
-      audioContext.close();
-      audioContext = null;
     }
   }
 
   function playSound(type) {
-    if (!audioEnabled || !audioContext) return;
+    if (!audioContext || masterGainNode.gain.value === 0) return;
 
     let oscillator;
     let gainNode = audioContext.createGain();
@@ -262,14 +269,14 @@
 
         const source = audioContext.createBufferSource();
         source.buffer = noise;
-        source.connect(b).connect(gainNode).connect(audioContext.destination);
+        source.connect(b).connect(gainNode).connect(masterGainNode);
         source.start();
         source.stop(audioContext.currentTime + 0.5);
 
         return; // Don't continue for explosion sound
     }
 
-    oscillator.connect(gainNode).connect(audioContext.destination);
+    oscillator.connect(gainNode).connect(masterGainNode);
     oscillator.start();
     oscillator.stop(audioContext.currentTime + 0.2);
   }
@@ -277,6 +284,9 @@
   audioButton.addEventListener('click', () => {
     toggleAudio();
   });
+  
+  // Initialize audio on first user click anywhere on the page
+  document.addEventListener('pointerdown', initAudio, { once: true });
 
   /* ===== State ===== */
   let score = 0, wave = 1, paused = false, gameOver = false, running = false;
