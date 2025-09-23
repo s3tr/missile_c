@@ -5,26 +5,137 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Missile Command — Fixed</title>
   <style>
-    html,body{height:100%;margin:0;background:#000}
-    :root{--bg1:#041026;--bg2:#00121a;--accent:#62d0ff;--glass:rgba(255,255,255,0.06)}
-    body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:
-      radial-gradient(1200px 600px at 10% 10%,rgba(80,120,160,.06),transparent),
-      linear-gradient(180deg,var(--bg1),var(--bg2));
-      color:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    #game{width:min(1100px,96vw);height:min(700px,86vh);position:relative;border-radius:14px;
-      box-shadow:0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
-      overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
-    canvas{display:block;width:100%;height:100%;background:transparent}
-    .hud{position:absolute;left:14px;top:12px;font-size:14px;backdrop-filter:blur(6px);
-      padding:8px 10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));
-      box-shadow:0 6px 18px rgba(0,0,0,.5)}
-    .hud .title{font-weight:700;letter-spacing:.6px}
-    .controls{position:absolute;right:14px;top:12px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--glass)}
-    .footer{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;font-size:13px;padding:6px 12px;border-radius:10px;background:var(--glass)}
-    button{background:linear-gradient(180deg,var(--accent),#2aa0d9);border:none;padding:8px 14px;border-radius:8px;cursor:pointer;color:#012;font-size:15px;font-weight:600}
-    .menu,.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.7);z-index:10}
-    .hidden{display:none}
-    @media (max-width:720px){.hud,.controls,.footer{font-size:12px;padding:6px}}
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      color: #fff;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(80, 120, 160, .06), transparent), linear-gradient(180deg, #041026, #00121a);
+    }
+
+    #game {
+      width: min(1100px, 96vw);
+      height: min(700px, 86vh);
+      position: relative;
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .03);
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .02), transparent);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+
+    .hud {
+      position: absolute;
+      left: 14px;
+      top: 12px;
+      font-size: 14px;
+      backdrop-filter: blur(6px);
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, .01));
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+    }
+
+    .hud .title {
+      font-weight: 700;
+      letter-spacing: .6px;
+    }
+
+    .controls {
+      position: absolute;
+      right: 14px;
+      top: 12px;
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      gap: 10px;
+    }
+
+    .footer {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    button {
+      background: linear-gradient(180deg, #62d0ff, #2aa0d9);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #012;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, .2);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    #audioButton {
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #audioButton svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+    }
+
+    .muted {
+      opacity: .9;
+      color: #cfeaff;
+    }
+
+    .menu,
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, .7);
+      z-index: 10;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .menu h1,
+    .overlay h1 {
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 720px) {
+      .hud, .controls, .footer {
+        font-size: 12px;
+        padding: 6px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -38,12 +149,20 @@
     <div id="ammo">Ammo: 0 / 0 / 0</div>
   </div>
 
-  <div class="controls">
-    <div>Tıkla: ateş et</div>
-    <div style="margin-top:6px">R: yeniden başlat • Space: durdur/devam</div>
+  <div class="controls muted">
+    <div>Click / Tap: ateş et</div>
+    <div style="margin-top: 6px">R: yeniden başlat • Space: durdur</div>
+    <button id="audioButton">
+        <svg id="audioOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        <svg id="audioOff" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .9-.23 1.74-.65 2.5l1.1-.96c.4-.66.8-1.54.8-2.54 0-4.01-3.0-7.19-7-8.77v2.06c2.89.86 5 3.53 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.41.21-.88.36-1.35.45v2.06c1.38-.23 2.64-.95 3.69-1.89L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+    </button>
   </div>
 
-  <div class="footer" id="footer">Wave 1 — difficulty: easy</div>
+  <div class="footer muted" id="footer">Wave 1 — difficulty: normal</div>
 
   <div id="mainMenu" class="menu">
     <h1>Missile Command</h1>
@@ -52,7 +171,7 @@
 
   <div id="gameOverScreen" class="overlay hidden">
     <h1>Game Over</h1>
-    <div style="display:flex;gap:8px">
+    <div style="display: flex; gap: 8px">
       <button id="restartBtn">Restart</button>
       <button id="menuBtn">Main Menu</button>
     </div>
@@ -60,381 +179,496 @@
 </div>
 
 <script>
-/* ===== Canvas & DPI ===== */
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let DPR=1, W=0, H=0;
-function resize(){
-  DPR = Math.min(window.devicePixelRatio||1, 2);
-  const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
-  canvas.width  = Math.floor(cssW * DPR);
-  canvas.height = Math.floor(cssH * DPR);
-  W = canvas.width; H = canvas.height;
-  ctx.setTransform(1,0,0,1,0,0); // px uzayında çiz
-}
-window.addEventListener('resize', resize); resize();
+(function() {
+  /* ===== Canvas & DPI ===== */
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let DPR = 1, W = 0, H = 0;
 
-/* ===== State ===== */
-let score=0, wave=1, paused=false, gameOver=false, running=false;
-let cities=[], bases=[], enemies=[], interceptors=[], explosions=[], particles=[];
-let last = performance.now(), spawnAccum=0, spawnGap=2.5;
-
-const mainMenu = document.getElementById('mainMenu');
-const gameOverScreen = document.getElementById('gameOverScreen');
-
-/* ===== Buttons with logs ===== */
-document.getElementById('startBtn').addEventListener('click', () => {
-  console.log('[UI] Start clicked');
-  startGame();
-});
-document.getElementById('restartBtn').addEventListener('click', () => {
-  console.log('[UI] Restart clicked');
-  startGame();
-});
-document.getElementById('menuBtn').addEventListener('click', () => {
-  console.log('[UI] Menu clicked');
-  showMenu();
-});
-
-/* ===== Keys ===== */
-document.addEventListener('keydown', (e)=>{
-  if(e.code === 'Space'){
-    if(running && !gameOver){ paused = !paused; updateHUD(); }
-    e.preventDefault();
-  }else if(e.key.toLowerCase()==='r'){
-    startGame();
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    canvas.width = Math.floor(cssW * DPR);
+    canvas.height = Math.floor(cssH * DPR);
+    W = canvas.width;
+    H = canvas.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Draw in pixel space
   }
-});
+  window.addEventListener('resize', resize);
+  resize();
 
-/* ===== Normalize helpers ===== */
-const NX = x => x * W;
-const NY = y => y * H;
-function lerp(a,b,t){ return a + (b-a)*t; }
-function distN(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+  /* ===== Sound Engine ===== */
+  let audioContext = null;
+  let audioEnabled = false;
 
-/* ===== Init ===== */
-function init(){
-  score=0; wave=1; paused=false; gameOver=false;
-  enemies.length=0; interceptors.length=0; explosions.length=0; particles.length=0;
-  cities.length=0; bases.length=0;
-  spawnAccum=0; spawnGap=2.5;
+  const audioOnIcon = document.getElementById('audioOn');
+  const audioOffIcon = document.getElementById('audioOff');
+  const audioButton = document.getElementById('audioButton');
 
-  const groundY = 0.85;
-  const cityCount = 6;
-  for(let i=0;i<cityCount;i++){
-    cities.push({ x: 0.12 + i*(0.76/(cityCount-1)), y: groundY, alive:true });
-  }
-  bases.push({ x: 0.10, y: groundY+0.02, ammoMax:20, ammo:20 });
-  bases.push({ x: 0.50, y: groundY+0.02, ammoMax:20, ammo:20 });
-  bases.push({ x: 0.90, y: groundY+0.02, ammoMax:20, ammo:20 });
-
-  updateHUD();
-}
-
-/* ===== HUD ===== */
-const scoreEl = document.getElementById('score');
-const citiesEl = document.getElementById('cities');
-const ammoEl = document.getElementById('ammo');
-const footerEl = document.getElementById('footer');
-
-function difficultyName(w){
-  return w<5?'easy':w<10?'normal':w<16?'hard':'insane';
-}
-function updateHUD(){
-  scoreEl.textContent = 'Score: ' + score;
-  citiesEl.textContent = 'Cities: ' + cities.filter(c=>c.alive).length;
-  ammoEl.textContent = 'Ammo: ' + bases.map(b=>b.ammo).join(' / ');
-  footerEl.textContent = (paused?'⏸ ':'') + 'Wave ' + wave + ' — difficulty: ' + difficultyName(wave);
-  // teşhis için:
-  // console.log(`[STATE] running=${running} paused=${paused} gameOver=${gameOver} wave=${wave} enemies=${enemies.length}`);
-}
-
-/* ===== Start/Menu ===== */
-function startGame(){
-  mainMenu.classList.add('hidden');
-  gameOverScreen.classList.add('hidden');
-
-  init();
-
-  running = true;               // önce true yap
-  paused = false;
-  gameOver = false;
-
-  spawnWave();                  // ilk dalga anında
-  last = performance.now();
-
-  console.log('[GAME] running=', running, 'wave=', wave);
-  requestAnimationFrame(loop);
-}
-function showMenu(){
-  running=false;
-  mainMenu.classList.remove('hidden');
-  gameOverScreen.classList.add('hidden');
-}
-
-/* ===== Input (fire) ===== */
-canvas.addEventListener('pointerdown', (e)=>{
-  if(!running || gameOver || paused) return;
-  const rect = canvas.getBoundingClientRect();
-  const tx = (e.clientX - rect.left) / rect.width;
-  const ty = (e.clientY - rect.top)  / rect.height;
-  fireInterceptor(tx, ty);
-});
-
-function fireInterceptor(tx, ty){
-  let best=null, bestD=Infinity;
-  for(const b of bases){
-    if(b.ammo>0){
-      const d = Math.abs(b.x - tx);
-      if(d < bestD){ best=b; bestD=d; }
+  function toggleAudio() {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    audioEnabled = !audioEnabled;
+    if (audioEnabled) {
+      audioOnIcon.classList.remove('hidden');
+      audioOffIcon.classList.add('hidden');
+      // A simple background hum
+      const osc = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.01, audioContext.currentTime);
+      osc.connect(gainNode).connect(audioContext.destination);
+      osc.start();
+      osc.stop(audioContext.currentTime + 999999);
+    } else {
+      audioOnIcon.classList.add('hidden');
+      audioOffIcon.classList.remove('hidden');
+      audioContext.close();
+      audioContext = null;
     }
   }
-  if(!best) return;
-  best.ammo--;
-  interceptors.push({
-    sx: best.x, sy: best.y, // başlangıcı kaydet (lerp için)
-    x: best.x,  y: best.y,
-    tx, ty,
-    t: 0, spd: 1.1
+
+  function playSound(type) {
+    if (!audioEnabled || !audioContext) return;
+
+    let oscillator;
+    let gainNode = audioContext.createGain();
+
+    switch(type) {
+      case 'fire':
+        oscillator = audioContext.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.15);
+        break;
+      case 'explosion':
+        oscillator = audioContext.createOscillator();
+        const b = audioContext.createBiquadFilter();
+        b.type = 'lowpass';
+        b.frequency.setValueAtTime(100, audioContext.currentTime);
+        oscillator.connect(b);
+
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        
+        const noise = audioContext.createBuffer(1, audioContext.sampleRate, audioContext.sampleRate);
+        const output = noise.getChannelData(0);
+        for (let i = 0; i < noise.length; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const source = audioContext.createBufferSource();
+        source.buffer = noise;
+        source.connect(b).connect(gainNode).connect(audioContext.destination);
+        source.start();
+        source.stop(audioContext.currentTime + 0.5);
+
+        return; // Don't continue for explosion sound
+    }
+
+    oscillator.connect(gainNode).connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+  }
+
+  audioButton.addEventListener('click', () => {
+    toggleAudio();
   });
-  for(let i=0;i<10;i++){
-    particles.push({x:best.x,y:best.y,vx:(Math.random()-.5)*0.03,vy:-Math.random()*0.05,life:0.3+Math.random()*0.3,size:1+Math.random()*1.5,color:'#9be3a5'});
+
+  /* ===== State ===== */
+  let score = 0, wave = 1, paused = false, gameOver = false, running = false;
+  let cities = [], bases = [], enemies = [], interceptors = [], explosions = [], particles = [];
+  let last = performance.now();
+  let enemiesToSpawn = 0;
+
+  const mainMenu = document.getElementById('mainMenu');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  document.getElementById('startBtn').onclick = () => startGame();
+  document.getElementById('restartBtn').onclick = () => startGame();
+  document.getElementById('menuBtn').onclick = () => showMenu();
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      if (running && !gameOver) {
+        paused = !paused;
+      }
+      e.preventDefault();
+    } else if (e.key.toLowerCase() === 'r') {
+      startGame();
+    }
+  });
+
+  /* ===== Helpers: normalized <-> pixel =====
+     All game logic is in 0..1 normalized coordinates.
+     We convert to pixels when drawing. */
+  const NX = x => x * W;
+  const NY = y => y * H;
+
+  /* ===== Init ===== */
+  function init() {
+    score = 0;
+    wave = 1;
+    paused = false;
+    gameOver = false;
+    enemies.length = 0;
+    interceptors.length = 0;
+    explosions.length = 0;
+    particles.length = 0;
+    cities.length = 0;
+    bases.length = 0;
+    enemiesToSpawn = 0;
+
+    const groundY = 0.85; // Raised a bit to occupy space at the bottom
+    const cityCount = 6;
+    for (let i = 0; i < cityCount; i++) {
+      cities.push({
+        x: 0.12 + i * (0.76 / (cityCount - 1)),
+        y: groundY,
+        alive: true
+      });
+    }
+    // 3 bases: left-center-right
+    bases.push({
+      x: 0.10,
+      y: groundY + 0.02,
+      ammoMax: 20,
+      ammo: 20
+    });
+    bases.push({
+      x: 0.50,
+      y: groundY + 0.02,
+      ammoMax: 20,
+      ammo: 20
+    });
+    bases.push({
+      x: 0.90,
+      y: groundY + 0.02,
+      ammoMax: 20,
+      ammo: 20
+    });
+
+    updateHUD();
   }
-  updateHUD();
-}
 
-/* ===== Game Loop ===== */
-function loop(now){
-  if(!running) return;
-  const dt = Math.min((now - last)/1000, 0.033);
-  last = now;
+  /* ===== UI ===== */
+  const scoreEl = document.getElementById('score');
+  const citiesEl = document.getElementById('cities');
+  const ammoEl = document.getElementById('ammo');
+  const footerEl = document.getElementById('footer');
 
-  if(!paused && !gameOver){
-    update(dt);
-  }
-  render();
-
-  // her karede sürdür
-  requestAnimationFrame(loop);
-}
-
-/* ===== Update ===== */
-function update(dt){
-  // spawn pacing
-  spawnAccum += dt;
-  const targetGap = Math.max(2.2 - wave*0.12, 0.7);
-  if(spawnAccum >= spawnGap){
-    spawnWave();
-    spawnAccum = 0;
-    spawnGap = targetGap;
-    wave++;
+  function updateHUD() {
+    scoreEl.textContent = 'Score: ' + score;
+    citiesEl.textContent = 'Cities: ' + cities.filter(c => c.alive).length;
+    ammoEl.textContent = 'Ammo: ' + bases.map(b => b.ammo).join(' / ');
+    footerEl.textContent = 'Wave ' + wave + ' — difficulty: ' + (wave < 5 ? 'easy' : wave < 10 ? 'normal' : wave < 16 ? 'hard' : 'insane');
   }
 
-  // enemy missiles
-  for(let i=enemies.length-1;i>=0;i--){
-    const m = enemies[i];
-    const dx = m.tx - m.x, dy = m.ty - m.y;
-    const dist = Math.hypot(dx,dy) || 1e-6;
-    const step = (m.speed * dt) / dist;
-    m.x += dx * step;
-    m.y += dy * step;
+  function startGame() {
+    mainMenu.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    init();
+    startWave();
+    running = true;
+    last = performance.now();
+    requestAnimationFrame(loop);
+  }
 
-    if(Math.hypot(m.x - m.tx, m.y - m.ty) < 0.01){
-      let hit = false;
-      for(const c of cities){
-        if(c.alive && distN(c.x,c.y,m.x,m.y) < 0.03){
-          c.alive = false; hit = true; break;
+  function showMenu() {
+    running = false;
+    mainMenu.classList.remove('hidden');
+    gameOverScreen.classList.add('hidden');
+  }
+
+  /* ===== Input: ateş et (fire) ===== */
+  canvas.addEventListener('pointerdown', (e) => {
+    // Prevent firing if an overlay is open
+    if (!running || gameOver || paused) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const tx = (e.clientX - rect.left) / rect.width;
+    const ty = (e.clientY - rect.top) / rect.height;
+
+    fireInterceptor(tx, ty);
+  });
+
+  function fireInterceptor(tx, ty) {
+    // Find the closest base with ammo
+    let best = null,
+      bestD = Infinity;
+    for (const b of bases) {
+      if (b.ammo > 0) {
+        const d = Math.abs(b.x - tx);
+        if (d < bestD) {
+          best = b;
+          bestD = d;
         }
       }
-      if(!hit){
-        for(const b of bases){
-          if(distN(b.x,b.y,m.x,m.y) < 0.03){
-            b.ammo = 0; hit = true; break;
-          }
-        }
+    }
+    if (!best) return;
+    best.ammo--;
+    interceptors.push({
+      x: best.x,
+      y: best.y,
+      tx,
+      ty,
+      t: 0,
+      spd: 1.1 // Progress from 0 to 1
+    });
+    playSound('fire');
+    // Muzzle flash particles
+    for (let i = 0; i < 10; i++) {
+      particles.push({
+        x: best.x,
+        y: best.y,
+        vx: (Math.random() - .5) * 0.03,
+        vy: -Math.random() * 0.05,
+        life: 0.3 + Math.random() * 0.3,
+        size: 1 + Math.random() * 1.5,
+        color: '#9be3a5'
+      });
+    }
+    updateHUD();
+  }
+
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min((now - last) / 1000, 0.033);
+    last = now;
+
+    if (!paused && !gameOver) {
+      update(dt);
+    }
+    render();
+
+    // Continue the loop every frame (even if gameOver)
+    requestAnimationFrame(loop);
+  }
+
+  /* ===== Spawn / Update ===== */
+  function startWave() {
+    enemiesToSpawn = 5 + Math.floor(wave * 1.5);
+    spawnEnemy();
+  }
+
+  function spawnEnemy() {
+    if (enemiesToSpawn <= 0) return;
+    enemiesToSpawn--;
+
+    const startX = Math.random();
+    const startY = 0;
+    const targetIsCity = Math.random() > 0.3 && cities.some(c => c.alive);
+    let target = null;
+    if (targetIsCity) {
+      const aliveCities = cities.filter(c => c.alive);
+      target = aliveCities[Math.floor(Math.random() * aliveCities.length)];
+    } else {
+      const aliveBases = bases.filter(b => b.ammo > 0);
+      if (aliveBases.length > 0) {
+        target = aliveBases[Math.floor(Math.random() * aliveBases.length)];
+      } else {
+        target = cities[Math.floor(Math.random() * cities.length)];
       }
-      explode(m.x, m.y, 0.06);
-      enemies.splice(i,1);
-      continue;
     }
-  }
 
-  // interceptors
-  for(let i=interceptors.length-1;i>=0;i--){
-    const it = interceptors[i];
-    it.t = Math.min(it.t + dt*it.spd, 1);
-    it.x = lerp(it.sx, it.tx, it.t);
-    it.y = lerp(it.sy, it.ty, it.t);
-    if(it.t >= 1){
-      explode(it.tx, it.ty, 0.08);
-      interceptors.splice(i,1);
-    }
-  }
-
-  // explosions (damage in radius)
-  for(let i=explosions.length-1;i>=0;i--){
-    const ex = explosions[i];
-    ex.r = Math.min(ex.r + dt*ex.growth, ex.rMax);
-    ex.life -= dt;
-
-    for(let j=enemies.length-1;j>=0;j--){
-      const m = enemies[j];
-      if(distN(m.x,m.y, ex.x,ex.y) <= ex.r){
-        score += 25;
-        explode(m.x, m.y, 0.05);
-        enemies.splice(j,1);
-      }
-    }
-    if(ex.life <= 0) explosions.splice(i,1);
-  }
-
-  // particles
-  for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i];
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.02*dt;
-    p.life -= dt;
-    if(p.life<=0) particles.splice(i,1);
-  }
-
-  // game over?
-  if(cities.every(c=>!c.alive)){
-    gameOver = true;
-    gameOverScreen.classList.remove('hidden');
-  }
-
-  updateHUD();
-}
-
-/* ===== Spawning ===== */
-function spawnWave(){
-  const aliveCities = cities.filter(c=>c.alive);
-  if(aliveCities.length===0){ gameOver = true; return; }
-
-  const count = Math.min(6 + Math.floor(wave*1.2), 28); // başlangıçta da hareket olsun
-  for(let i=0;i<count;i++){
-    const sx = Math.random()*0.9 + 0.05;
-    const sy = -0.05;
-    const targets = aliveCities.concat(bases);
-    const t = targets[Math.floor(Math.random()*targets.length)];
     enemies.push({
-      x:sx, y:sy, tx: t.x + (Math.random()*0.04-0.02), ty: t.y,
-      speed: 0.20 + Math.random()*0.07 + Math.min(0.015*wave, 0.20)
+      x: startX,
+      y: startY,
+      tx: target.x,
+      ty: target.y,
+      speed: 0.05 + wave * 0.005,
+      target,
+      exploding: false
     });
-  }
-  // her dalga ammo takviyesi
-  for(const b of bases){
-    b.ammo = Math.min(b.ammo + 5, b.ammoMax);
-  }
-}
 
-/* ===== FX ===== */
-function explode(nx, ny, r){
-  explosions.push({ x:nx, y:ny, r:0.001, rMax:r, life:0.8, growth:r*2 });
-  for(let i=0;i<24;i++){
-    particles.push({
-      x:nx, y:ny,
-      vx:(Math.random()-.5)*0.06,
-      vy:(Math.random()-.6)*0.08,
-      life:0.4+Math.random()*0.5,
-      size:1+Math.random()*2,
-      color: Math.random()<0.5?'rgba(255,223,128,1)':'rgba(255,140,66,1)'
-    });
-  }
-}
-
-/* ===== Stars (static) ===== */
-const stars = (()=>{ const arr=[];
-  for(let i=0;i<120;i++) arr.push({x:Math.random(),y:Math.random(),r:Math.random()*1.5,tw:Math.random()*1.5});
-  return arr;
-})();
-
-/* ===== Render ===== */
-function render(){
-  ctx.clearRect(0,0,W,H);
-
-  // stars
-  const t = performance.now()/1000;
-  for(const s of stars){
-    const a = 0.15 + 0.85*Math.abs(Math.sin(t*s.tw));
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
-    ctx.arc(NX(s.x), NY(s.y), s.r*DPR, 0, Math.PI*2);
-    ctx.fill();
+    setTimeout(spawnEnemy, 2500 / (1 + wave * 0.2));
   }
 
-  // ground strip
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.fillRect(0, NY(0.87), W, H - NY(0.87));
 
-  // cities
-  for(const c of cities){
-    const x = NX(c.x), y = NY(c.y);
-    ctx.fillStyle = c.alive ? 'rgba(217,225,184,0.95)' : 'rgba(120,120,120,0.35)';
-    const w = 22*DPR, h = 16*DPR;
-    ctx.fillRect(x-w*0.6, y-h, w*0.4, h);
-    ctx.fillRect(x-w*0.1, y-h*1.2, w*0.5, h*1.2);
-    ctx.fillRect(x+w*0.5, y-h*0.8, w*0.35, h*0.8);
+  function update(dt) {
+    // Update enemies
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const m = enemies[i];
+      if (m.exploding) continue;
+
+      const dx = m.tx - m.x,
+        dy = m.ty - m.y;
+      const dist = Math.hypot(dx, dy) || 1e-6;
+      const step = (m.speed * dt) / dist;
+      m.x += dx * step;
+      m.y += dy * step;
+
+      // Check if it hit the target
+      if (Math.hypot(m.x - m.tx, m.y - m.ty) < 0.01) {
+        explosions.push({
+          x: m.x,
+          y: m.y,
+          r: 0,
+          rMax: 0.05,
+          life: 1
+        });
+        m.exploding = true;
+        playSound('explosion');
+        // Check if a city or base was hit
+        if (m.target.alive !== undefined) {
+          m.target.alive = false;
+        } else if (m.target.ammo !== undefined) {
+          m.target.ammo = 0;
+        }
+        score += 10;
+        enemies.splice(i, 1);
+        updateHUD();
+      }
+    }
+
+    // Update interceptors
+    for (let i = interceptors.length - 1; i >= 0; i--) {
+      const m = interceptors[i];
+      m.t += dt * m.spd;
+      if (m.t >= 1) {
+        explosions.push({
+          x: m.tx,
+          y: m.ty,
+          r: 0,
+          rMax: 0.06,
+          life: 1
+        });
+        playSound('explosion');
+        interceptors.splice(i, 1);
+      }
+    }
+
+    // Update explosions and check for collisions
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      const e = explosions[i];
+      e.r += dt * e.rMax;
+      e.life -= dt;
+      if (e.life <= 0) {
+        explosions.splice(i, 1);
+        continue;
+      }
+
+      // Check for enemy collisions with this explosion
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const m = enemies[j];
+        if (m.exploding) continue;
+        const dist = Math.hypot(m.x - e.x, m.y - e.y);
+        if (dist < e.r) {
+          m.exploding = true;
+          explosions.push({
+            x: m.x,
+            y: m.y,
+            r: 0,
+            rMax: 0.05,
+            life: 1
+          });
+          playSound('explosion');
+          score += 100;
+          enemies.splice(j, 1);
+          updateHUD();
+        }
+      }
+    }
+
+    // Update particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+
+    // Check for game state changes
+    if (enemies.length === 0 && enemiesToSpawn === 0) {
+      const livingCities = cities.filter(c => c.alive).length;
+      if (livingCities > 0) {
+        wave++;
+        for (const b of bases) {
+          b.ammo = b.ammoMax;
+        }
+        startWave();
+      } else {
+        gameOver = true;
+        gameOverScreen.classList.remove('hidden');
+      }
+    }
   }
 
-  // bases
-  for(const b of bases){
-    const x = NX(b.x), y = NY(b.y);
-    ctx.fillStyle = 'rgba(155,227,165,0.95)';
-    ctx.beginPath();
-    ctx.moveTo(x-18*DPR,y); ctx.lineTo(x,y-18*DPR); ctx.lineTo(x+18*DPR,y); ctx.closePath(); ctx.fill();
-    // ammo bar
-    const ammoFrac = b.ammo / b.ammoMax;
-    ctx.fillStyle = 'rgba(98,208,255,0.9)';
-    ctx.fillRect(x-20*DPR, y+6*DPR, 40*DPR*ammoFrac, 5*DPR);
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.strokeRect(x-20*DPR, y+6*DPR, 40*DPR, 5*DPR);
-  }
+  /* ===== Render ===== */
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineWidth = 2 * DPR;
+    ctx.lineCap = 'round';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  // enemy trails & heads
-  ctx.lineWidth = 2*DPR;
-  for(const m of enemies){
-    ctx.strokeStyle = 'rgba(255,120,90,0.9)';
-    ctx.beginPath();
-    ctx.moveTo(NX(m.x), NY(m.y));
-    ctx.lineTo(NX(m.tx), NY(m.ty));
-    ctx.stroke();
+    // Render cities
+    ctx.fillStyle = '#d9e1b8';
+    for (const city of cities) {
+      if (city.alive) {
+        ctx.beginPath();
+        ctx.rect(NX(city.x - 0.02), NY(city.y - 0.05), NX(0.04), NY(0.05));
+        ctx.fill();
+      }
+    }
 
-    ctx.beginPath();
-    ctx.fillStyle = 'rgba(255,180,140,1)';
-    ctx.arc(NX(m.x), NY(m.y), 3*DPR, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // interceptors
-  for(const it of interceptors){
-    ctx.beginPath();
+    // Render bases
     ctx.fillStyle = '#9be3a5';
-    ctx.arc(NX(it.x), NY(it.y), 3.5*DPR, 0, Math.PI*2);
-    ctx.fill();
-  }
+    for (const base of bases) {
+      ctx.beginPath();
+      ctx.rect(NX(base.x - 0.02), NY(base.y - 0.02), NX(0.04), NY(0.02));
+      ctx.fill();
+    }
 
-  // explosions
-  for(const ex of explosions){
-    const rpx = ex.r * Math.min(W,H);
-    const grd = ctx.createRadialGradient(NX(ex.x), NY(ex.y), 0, NX(ex.x), NY(ex.y), rpx);
-    grd.addColorStop(0,'rgba(255,255,200,0.85)');
-    grd.addColorStop(0.7,'rgba(255,140,66,0.35)');
-    grd.addColorStop(1,'rgba(255,140,66,0.02)');
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.arc(NX(ex.x), NY(ex.y), rpx, 0, Math.PI*2);
-    ctx.fill();
-  }
+    // Render enemies (incoming missiles)
+    ctx.strokeStyle = '#ff8c42';
+    for (const m of enemies) {
+      if (m.exploding) continue;
+      const dx = m.tx - m.x,
+        dy = m.ty - m.y;
+      const len = 0.02;
+      ctx.beginPath();
+      ctx.moveTo(NX(m.x - dx * len), NY(m.y - dy * len));
+      ctx.lineTo(NX(m.x), NY(m.y));
+      ctx.stroke();
+    }
 
-  // particles
-  for(const p of particles){
-    ctx.fillStyle = p.color || '#fff';
-    ctx.beginPath();
-    ctx.arc(NX(p.x), NY(p.y), (p.size||2)*DPR, 0, Math.PI*2);
-    ctx.fill();
+    // Render interceptors (your missiles)
+    ctx.strokeStyle = '#62d0ff';
+    for (const m of interceptors) {
+      const startX = NX(m.x);
+      const startY = NY(m.y);
+      const endX = NX(m.x + (m.tx - m.x) * m.t);
+      const endY = NY(m.y + (m.ty - m.y) * m.t);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    }
+
+    // Render explosions
+    for (const e of explosions) {
+      const alpha = Math.max(0, e.life / 1);
+      ctx.fillStyle = `rgba(255, 140, 66, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(NX(e.x), NY(e.y), NX(e.r), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Render particles
+    for (const p of particles) {
+      const alpha = Math.max(0, p.life / (0.3 + p.life));
+      ctx.fillStyle = `${p.color}aa`;
+      ctx.beginPath();
+      ctx.arc(NX(p.x), NY(p.y), p.size * DPR, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
-}
+})();
 </script>
 </body>
 </html>
